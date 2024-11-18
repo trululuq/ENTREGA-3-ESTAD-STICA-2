@@ -1,0 +1,849 @@
+---
+title: "PRESENTACIÓN DEL TRABAJO FINAL"
+author: "Integrantes: Jauregui Zevallos, Johana y Gamarra Jesús, Grecia"
+date: "2024-2"
+subtitle: 'Curso: POL304 - Estadística para el análisis político 2'
+output:
+   flexdashboard::flex_dashboard:
+    orientation: rows
+---
+```{r}
+library(rio)
+library(dplyr)
+data= import("BASEDATA (2).xlsx")
+setwd("C:/Users/USUARIO/Downloads")
+```
+# **TEMA DE INVESTIGACIÓN**
+El sexo como principal factor detrás de las víctimas de trata de personas en el Perú en 2017.
+
+**Pregunta de investigación:** ¿Qué factores influyen en las tasas de trata de personas en el  Perú en 2017?
+
+Usamos el comando str para solicitar la estrura de las variables
+
+```{r}
+str(data)
+```
+# **Variable dependiente**
+Número de víctimas de trata de personas por departamentos del Perú en el 2018 y es una variable cuantitativa discreta.
+
+#### **Análisis descriptivo **
+
+Ahora analicemos las medidas de tendencia central, de dispersión y de posición. ¿Qué podemos comentar de los datos obtenidos?
+
+```{r}
+table(data$VICTIMAS)
+```
+
+
+De la tabla se puede afirmar que la moda es 17. Es decir, el número de víctimas de trata de presonas en el 2017 que ocurre con mayor frecuencia es 17, la cual corresponde a la cantidad registrada en los departamento de Ucayali, Ica y Lambayaque. 
+
+Basta que algún dato dentro de la muestra sea muy alto o muy bajo, el promedio se verá alterado. Esto vemos ocurre con el caso de Lima que cuenta con un número de víctimas de trata de personas en el 2017 muy alto (235), en comparación a los demás departamentos. 
+
+```{r}
+library(ggplot2)
+data  %>% 
+  summarise(Mínimo=min(VICTIMAS), 
+            Media= mean(VICTIMAS),
+            Mediana= median(VICTIMAS), 
+            Desviación=sd(VICTIMAS),
+            Máximo= max(VICTIMAS))
+```
+Este resultado quiere decir que el número promedio aproximado de víctimas de trata de personas en el 2017 de todos los departamentos del Perú analizados es 41.
+
+En segundo lugar, calculamos la mediana porque esta medida es más robusta que la media al resistir valores extremos. Se observa que la mitad de departamentos analizados tienen aproximadamente hasta 22 víctimas de trata de personas en el 2017.}
+
+La desviación estándar es una medida que nos ayuda a entender cuánto se separan los números en un conjunto de datos del valor promedio o medio. Podemos traducir ello como una forma de medir cuánto “se dispersan” los números alrededor de un número central. En este caso, la desviación es de 47.76 esto quiere decir que cada departamento se encuentra en promedio a 7 puntos de la media.
+
+Adicionalmente, podemos afirmar que el número mínimo de víctimas de trata de personas en el 2017 en todos los departamentos del Perú es de 3 (del departamento de Apurímac) y el número máximo es 235 (correspondiente al departamento de Lima). 
+
+A continuación, graficamos. 
+Como la variable VICTIMAS es numérica, esta vez realizaremos un histograma.
+
+```{r}
+VarDep=data$VICTIMAS
+descris=list(min=min(VarDep),
+             max=max(VarDep),
+             media=round(mean(VarDep),2),
+             var=round(var(VarDep),2),
+             asim=round(e1071::skewness(VarDep),2),
+             kurt=round(e1071::kurtosis(VarDep),2))
+
+base=ggplot(data=data, aes(x=VICTIMAS)) + theme_classic()
+hist=base + geom_histogram(bins=20)
+histInfo=hist + annotate("text", x=150, y = 12,
+                         color='grey50',
+                       label = paste0("Minimo: ",descris$min))
+histInfo = histInfo + annotate("text", x = 150, y = 10,
+                       color='grey50',
+                       label = paste0("Máximo: ",descris$max))
+
+histInfo = histInfo + annotate("text", x = 150, y = 8,
+                       color='grey50',
+                       label = paste0("Media: ",descris$media))
+
+histInfo = histInfo + annotate("text", x = 150, y = 6,
+                       color='grey50',
+                       label = paste0("Varianza: ",descris$var))
+
+histInfo = histInfo + annotate("text", x = 150, y = 4,
+                       color='grey50',
+                       label = paste0("Asimetría: ",descris$asim))
+
+histInfo = histInfo + annotate("text", x = 150, y = 2,
+                       color='grey50',
+                       label = paste0("Curtosis: ",descris$kurt))
+
+histInfo
+```
+
+El histograma muestra una distribución asimétrica hacia la derecha. Esto quiere decir que existe una concentración de datos hacia la derecha.
+
+**Analicemos las medidas de posición y grafiquemos**
+```{r}
+data  %>% 
+  summarise(Q1 = quantile(VICTIMAS, 0.25),
+            Q3 = quantile(VICTIMAS, 0.75))
+```
+Generamos el gráfico que mejor permite ver estas medidas de posición
+
+```{r}
+  ggplot(data,aes(y=VICTIMAS))+
+  geom_boxplot()+
+  ylab("Número de víctimas de trata de personas en el 2017")+
+  theme_classic()
+```
+Como ya sabemos la mediana es 21.5
+
+El gráfico facilita la visualización de la dispersión de los datos. En el caso de la variable dependiente, se observa poca dispersión debido al pequeño tamaño de la caja. En otras palabras, dentro de los departamentos, la mayoría registra (50% entre Q1 y Q3) como número de víctimas de trata de personas en el 2017 entre 17 y 50 personas. Además, podemos afirmar respecto del número de víctimas de trata de personas en el 2017 por departamentos, que el 75% de sus datos superiores por poco no superan las 50 víctimas (Q3= 49.25).
+
+Se identifica un valor atípico que corresponde al departamento de Lima con 235 vícitmas de trata de personas (los outliers se muestran como puntos individuales más allá del bigote de la caja). 
+
+# **Variables Independientes**
+
+#### **3.1. Porcentaje de habitantes de sexo femenino (MUJERES)**
+**Análisis descriptivo de la variable independiente**
+```{r}
+data$MUJERES=as.numeric(data$MUJERES)
+data %>%
+ summarise(Min = min(MUJERES, na.rm = TRUE),
+           Media = mean(MUJERES, na.rm = TRUE),
+           Mediana = median(MUJERES, na.rm = TRUE),
+           Desviación=sd (MUJERES, na.rm= TRUE),
+           Max = max(MUJERES, na.rm = TRUE),
+           Q1 = quantile(MUJERES, 0.25), #Primer cuartil
+    Q3 = quantile(MUJERES, 0.75)) #Tercer cuartil
+
+```
+Este resultado quiere decir que el porcentaje promedio de habitantes de sexo femenino en el 2017 de todos los departamentos analizados es de casi 50 (49.96).
+Igualmente, la mediana está muy cerca del 50%, lo cual nos indica que no hay datos extremos que alteren el promedio.Además, quiere decir que, hasta la mitad de departamentos analizados tienen una población de habitantes de sexo femenino de hasta 50%. 
+Un rango pequeño de valores mínimos y máximos (47.2 y 51.2) indica que la mayoría de los valores se agrupan en el centro de la distribución.
+
+
+**Grafiquemos**
+
+Generemos el gráfico que mejor permite ver estas medidas de posición
+
+```{r}
+  ggplot(data,aes(y=MUJERES))+
+  geom_boxplot()+
+  ylab("Porcentaje de habitantes de sexo femenino")+
+  theme_classic()
+```
+Si la distancia entre Q1 y Q3 es pequeña, esto indica que la distancia entre los valores más bajos y más altos es pequeña.
+
+Asimismo, Q1 = 49.3 y Q3 = 50.6 es un rango pequeño, lo que sugiere que hay poca variación en los datos y los valores se agrupan cerca de la mediana (50.2).Ademá, se detecta la presencia de un dato atípico que es el caso de Madre de Dios, el cual cuenta con 47.2% de habitantes de sexo femenino. 
+
+
+Realizamos un histograma porque es una variable numérica
+```{r}
+ ggplot(data, aes(x=MUJERES))+
+  geom_histogram(fill = "hotpink2",
+    color = "black",
+    bins = 20,
+    alpha = 0.7)+
+  xlab("Porcentaje de habitantes de sexo femenino") +
+  ylab("Frecuencia")+
+   theme_minimal()
+```
+El histograma muestra una distribución asimétrica sesgada con ligero sesgo negativo o a la izquierda. Esto quiere decir que existe una concentración de datos hacia la derecha.
+
+Ahora se realizará el análisis que corresponde entre dos variables numéricas. 
+La correlación es una medida de la relación (covariación) entre dos variables cuantitativas y la manera más sencilla de saber si dos variables están correlacionadas (varían conjuntamente).
+
+**Hipótesis de la prueba de correlación**
+H0: No existe correlación entre el número de víctimas de trata de personas en el 2017 y el porcentaje de habitantes de sexo femenino que hay en cada departamento.
+```{r}
+data$MUJERES=as.numeric(data$MUJERES)
+cor.test(data$VICTIMAS, data$MUJERES)
+```
+El Coeficiente de Correlación Lineal de Pearson mide la dirección y la fuerza de la relación lineal que existe entre dos variables cuantitativas.
+Dado que el p-valor es mayor a 0.05, aceptamos la hipótesis nula. Por lo tanto, podemos afirmar que no existe correlación entre el número de víctimas de trata de personas en el 2017 y el porcentaje de habitantes de sexo femenino que hay en cada departamento.
+
+
+#### **3.2. Porcentaje de población inmigrante según departamento de nacimiento (INMIGRANTES)**
+
+**Análisis descriptivo de la variable independiente**
+```{r}
+data %>%
+ summarise(Min = min(INMIGRANTES, na.rm = TRUE),
+           Media = mean(INMIGRANTES, na.rm = TRUE),
+           Mediana = median(INMIGRANTES, na.rm = TRUE),
+           Desviación=sd (INMIGRANTES, na.rm= TRUE),
+           Max = max(INMIGRANTES, na.rm = TRUE),
+           Q1 = quantile(INMIGRANTES, 0.25, na.rm= TRUE), #Primer cuartil
+    Q3 = quantile(INMIGRANTES, 0.75, na.rm=TRUE)) #Tercer cuartil
+```
+Un rango muy amplio (de 0.3 a 50.1) sugiere que hay mucha variación en los datos, desde los departamentos con un bajo porcentaje de inmigrantes hasta aquellos con un alto porcentaje de inmigrantes.
+
+Una media de 3.93 y una mediana de 1.5 indican que hay muchos departamentos con un bajo porcentaje de población inmigrante (la población inmigrante tiende a estar concentrada en departamentos donde el porcentaje de inmigrantes es bajo)
+
+**Grafiquemos**
+
+Generemos el gráfico que mejor permite ver estas medidas de posición
+
+```{r}
+  ggplot(data,aes(y=INMIGRANTES))+
+  geom_boxplot()+
+  ylab("Porcentaje de población inmigrante según departamento de nacimiento")+
+  theme_classic()
+```
+La distancia entre Q1 y Q3 es pequeña, lo que significa que hay poca variación en el rango del porcentaje de inmigrantes entre Q1 y Q3.
+
+Hay un punto afuera de la caja, que pertenece al departamento que tiene un muy alto porcentaje de inmigrantes (Lima con el 50.2%), por lo que es muy diferente de la mayoría de los otros departamentos en términos del porcentaje de inmigrantes.
+
+**Gráfico de dispersión**
+
+Visualizamos la relación entre dos variables cuantitativas. Esta “nube” de puntos en el gráfico de dispersión nos da una idea visual de la probable relación entre las variables.
+
+```{r}
+library(ggplot2)
+ggplot(data, aes(x=INMIGRANTES, y=VICTIMAS)) +
+  geom_point(colour="skyblue") +  xlab("Porcentaje de población inmigrante 
+según departamento de nacimiento") +  ylab("Número de víctimas de trata 
+  de personas, 2017") +
+  ggtitle("Relación entre el porcentaje de población inmigrante según departamento de nacimiento y el número de víctimas de trata de personas en el 2017") +
+  theme_light()+ geom_smooth(method=lm,se=F)
+```
+El gráfico nos indica una correlación positiva.Reallizaremos la prueba de correlación para saber la fuerza de la correlación
+
+**Hipótesis de la correlación**
+H0 = No existe correlación entre el porcentaje de población inmigrante según departamento de nacimiento y el número de víctimas de trata de personas en el 2017.
+
+
+```{r}
+cor.test(data$VICTIMAS, data$INMIGRANTES)
+```
+Como el p-valor es menor a 0.05, rechazamos la H0. Por lo tanto, podemos afirmar que existe correlación entre el porcentaje de población inmigrante según departamento de nacimiento y el número de víctimas de trata de personas en el 2017.
+
+El coeficiente es de 0.87, lo que quiere decir: (i) Se trata de una correlación positiva; es decir, relación directa (+) y (ii) Según los criterios de Cohen (1988), se trata de una correlación grande.
+En síntesis, se espera que mientras más elevado sea el porcentaje de población inmigrante según departamento de nacimiento, mayor será el número de víctimas de trata de personas.
+
+Aunque en el gráfico de dispersion no se observaba la tendencia de manera clara, sabemos que se trata de una relación fuerte y suficientemente significativa para ser considerada relevante. 
+
+No obstante, la correlación fuerte no significa que el porcentaje de inmigrantes sea la única causa del número de víctimas de trata de personas. Podrían haber otros factores que influyen en el número de víctimas.
+
+#### **3.3. Porcentaje de población rural según departamento (RURAL)**
+**Análisis descriptivo de la variable independiente**
+```{r}
+data %>%
+ summarise(Min = min(RURAL, na.rm = TRUE),
+           Media = mean(RURAL, na.rm = TRUE),
+           Mediana = median(RURAL, na.rm = TRUE),
+           Desviación=sd (RURAL, na.rm= TRUE),
+           Max = max(RURAL, na.rm = TRUE),
+           Q1 = quantile(RURAL, 0.25, na.rm= TRUE), #Primer cuartil
+    Q3 = quantile(RURAL, 0.75, na.rm=TRUE)) #Tercer cuartil
+```
+Un rango de valores muy amplio (de 2% a 77%) indica que hay departamentos con muy bajo porcentaje de población rural y otros con muy alto porcentaje de población rural. Esto sugiere una gran variedad en las poblaciones rurales de los departamentos.
+
+La media de 32.875 indica que el porcentaje de población rural por departamento tiende a concentrarse alrededor de 33%. 
+
+Una mediana de 33% indica que la mitad de los departamentos tienen un porcentaje de población rural menor o igual a 33%, lo que sugiere que la mayoría de los departamentos tiene un porcentaje de población rural relativamente bajo.
+
+**Grafiquemos**
+
+Generemos el gráfico que mejor permite ver estas medidas de posición
+
+```{r}
+  ggplot(data,aes(y=RURAL))+
+  geom_boxplot()+
+  ylab("Porcentaje de población rural según
+       departamento")+
+  theme_classic()
+```
+La distancia entre Q1 y Q3 es bastante grande (26%), lo que indica que hay una significativa variación en el porcentaje de población rural entre los departamentos.
+
+El que no haya puntos fuera de las cajas, eso sugiere que la mayoría de los departamentos tienen porcentajes de población rural dentro del mismo rango. Esto podría ser debido a que muchos departamentos peruanos tienen un porcentaje similar de población rural.
+
+**Gráfico de dispersión**
+
+Visualizamos la relación entre dos variables cuantitativas.
+
+```{r}
+library(ggplot2)
+ggplot(data, aes(x=RURAL, y=VICTIMAS)) +
+  geom_point(colour="skyblue") +  xlab("Porcentaje de población rural
+  según departamento") +  ylab("Número de víctimas de trata 
+  de personas, 2017") +
+  ggtitle("Relación entre el porcentaje de población rural según departamento y 
+          el número de víctimas de trata de personas en el 2017") +
+  theme_light()+ geom_smooth(method=lm,se=F)
+```
+El gráfico nos indicaría una correlación negativa.Reallizaremos la prueba de correlación para saber la fuerza de la correlación
+
+**Hipótesis de la correlación**
+H0 = No existe correlación entre el porcentaje de población rural según departamento y el número de víctimas de trata de personas en el 2017.
+```{r}
+cor.test(data$VICTIMAS, data$RURAL)
+```
+Dado que el p-valor es mayor a 0.05, aceptamos la H0. Por lo tanto, podemos afirmar que no existe correlación entre el porcentaje de población rural según departamento y el número de víctimas de trata de personas en el 2017.
+
+#### **3.4. Porcentaje de habitantes que pertencen a un nivel socieconómico muy bajo (SOCIOECO_MUYBAJO)**
+**Análisis descriptivo de la variable independiente**
+```{r}
+data %>%
+ summarise(Min = min(SOCIOECO_MUYBAJO, na.rm = TRUE),
+           Media = mean(SOCIOECO_MUYBAJO, na.rm = TRUE),
+           Mediana = median(SOCIOECO_MUYBAJO, na.rm = TRUE),
+           Desviación=sd (SOCIOECO_MUYBAJO, na.rm= TRUE),
+           Max = max(SOCIOECO_MUYBAJO, na.rm = TRUE),
+           Q1 = quantile(SOCIOECO_MUYBAJO, 0.25, na.rm= TRUE), #Primer cuartil
+    Q3 = quantile(SOCIOECO_MUYBAJO, 0.75, na.rm=TRUE)) #Tercer cuartil
+```
+Este resultado quiere decir que el porcentaje de habitantes que pertencen a un nivel socieconómico muy bajo en el 2017 de todos los departamentos analizados es de 48.
+Igualmente, la mediana es 49%, lo cual nos indica que no hay datos extremos que alteren el promedio.Además, quiere decir que, hasta la mitad de departamentos analizados tienen un porcentaje de habitantes que pertencen a un nivel socieconómico muy bajo de hasta 49%. 
+Un rango de valores muy amplio (9.3 a 83%) indica que hay departamentos con un porcentaje muy bajo de habitantes que pertenecen a un nivel socioeconómico muy bajo y otros con un porcentaje muy alto. Esto sugiere una gran variedad en los niveles socioeconómicos entre los departamentos.
+En este caso, la desviación es de 21.51 esto quiere decir que cada departamento se encuentra en promedio a 27% de la media.
+
+
+**Grafiquemos**
+
+Generemos el gráfico que mejor permite ver estas medidas de posición
+
+```{r}
+  ggplot(data,aes(y=SOCIOECO_MUYBAJO))+
+  geom_boxplot()+
+  ylab("Porcentaje de habitantes que pertencen a un nivel
+       socieconómico muy bajo")+
+  theme_classic()
+```
+La distancia entre Q1 y Q3 es bastante grande (33%), lo que indica que hay mucha variación en los porcentajes de habitantes que pertenecen a un nivel socioeconómico muy bajo entre los departamentos.
+
+El punto del centro (mediana) está un poco más lejos de la mitad superior del rango de valores, lo que sugiere que la mayoría de los departamentos no tiene un porcentaje de habitantes que pertenecen a un nivel socioeconómico muy bajo mayor que el promedio.
+
+**Gráfico de dispersión**
+
+Visualizamos la relación entre dos variables cuantitativas.
+
+```{r}
+library(ggplot2)
+ggplot(data, aes(x=SOCIOECO_MUYBAJO, y=VICTIMAS)) +
+  geom_point(colour="skyblue") +  xlab("Porcentaje de habitantes que pertencen a un nivel 
+  socieconómico muy bajo") +  ylab("Número de víctimas de trata 
+  de personas, 2017") +
+  ggtitle("Relación entre el porcentaje de población rural según departamento y 
+          el número de víctimas de trata de personas en el 2017") +
+  theme_light()+ geom_smooth(method=lm,se=F)
+```
+A primera vista, el gráfico nos indicaría una correlación negativa.Realizaremos la prueba de correlación para saber la fuerza de la correlación
+
+**Hipótesis de la correlación**
+H0 = No existe correlación entre el porcentaje de habitantes que pertencen a un nivel socieconómico muy bajo y el número de víctimas de trata de personas en el 2017.
+
+```{r}
+cor.test(data$VICTIMAS, data$SOCIOECO_MUYBAJO)
+```
+Dado que el p-valor es mayor a 0.05, aceptamos la H0. Por lo tanto, podemos afirmar que no existe correlación entre el porcentaje de habitantes que pertencen a un nivel socieconómico muy bajo y el número de víctimas de trata de personas en el 2017.
+
+#### **3.5. Tasa neta de asistencia escolar a educación secundaria de la población de 12 a 16 años de edad, 2017 (ASISTENCIA_SEC)**
+**Análisis descriptivo de la variable independiente**
+```{r}
+data %>%
+ summarise(Min = min(ASISTENCIA_SEC, na.rm = TRUE),
+           Media = mean(ASISTENCIA_SEC, na.rm = TRUE),
+           Mediana = median(ASISTENCIA_SEC, na.rm = TRUE),
+           Desviación=sd (ASISTENCIA_SEC, na.rm= TRUE),
+           Max = max(ASISTENCIA_SEC, na.rm = TRUE),
+           Q1 = quantile(ASISTENCIA_SEC, 0.25, na.rm= TRUE), #Primer cuartil
+    Q3 = quantile(ASISTENCIA_SEC, 0.75, na.rm=TRUE)) #Tercer cuartil
+```
+Este resultado quiere decir que el número promedio aproximado de la tasa neta de asistencia escolar a educación secundaria de la población de 12 a 16 años de edad de todos los departamentos del Perú analizados es 84.
+
+En segundo lugar, calculamos la mediana porque esta medida es más robusta que la media al resistir valores extremos. Una mediana de 85.1 indica que la mitad de los jóvenes asisten a un porcentaje superior o igual al 85% de las clases en la educación secundaria..
+
+Un rango muy pequeño de 74.6 a 91.5 indica que la gran mayoría de los jóvenes entre 12 y 16 años asisten a un alto porcentaje de clases en la educación secundaria. Sin embargo, algunos jóvenes asisten a menos clases.
+
+
+**Grafiquemos**
+
+Generemos el gráfico que mejor permite ver estas medidas de posición
+
+```{r}
+  ggplot(data,aes(y=ASISTENCIA_SEC))+
+  geom_boxplot()+
+  ylab("Tasa neta de asistencia escolar a educación secundaria de la población 
+       de 12 a 16 años de edad")+
+  theme_classic()
+```
+Una distancia de 6.35 entre Q1 y Q3 es bastante pequeña, lo que sugiere que hay poca variación en el número de clases que los jóvenes asisten en la educación secundaria.
+La mediana está un poco más cerca del cuartil 3 que del cuartil 1, lo que sugiere que los jóvenes asisten a un porcentaje más alto de clases en educación secundaria.
+
+**Gráfico de dispersión**
+
+Visualizamos la relación entre dos variables cuantitativas.
+
+```{r}
+library(ggplot2)
+ggplot(data, aes(x=ASISTENCIA_SEC, y=VICTIMAS)) +
+  geom_point(colour="skyblue") +  xlab("Tasa neta de asistencia escolar a educación secundaria de la población
+  de 12 a 16 años de edad") +  ylab("Número de víctimas de trata 
+  de personas, 2017") +
+  ggtitle("Relación entre la tasa neta de asistencia escolar a educación secundaria de la población de 12 a 16 años de edad y el número de víctimas de trata de personas en el 2017") +
+  theme_light()+ geom_smooth(method=lm,se=F)
+```
+A primera vista, el gráfico nos indicaría una correlación positiva.Realizaremos la prueba de correlación para saber la fuerza de la correlación
+
+**Hipótesis de la correlación**
+H0 = No existe correlación entre la tasa neta de asistencia escolar a educación secundaria de la población de 12 a 16 años de edad, y el número de víctimas de trata de personas en el 2017.
+```{r}
+cor.test(data$VICTIMAS, data$ASISTENCIA_SEC)
+```
+Dado que el p-valor es mayor a 0.05, aceptamos la H0. Por lo tanto, podemos afirmar que no existe correlación entre la tasa neta de asistencia escolar a educación secundaria de la población de 12 a 16 años de edad, y el número de víctimas de trata de personas en el 2017.
+
+#### **3.6. Tasa de población económicamente activa ocupada femenina (PEACOUPADA_FEM)**
+**Análisis descriptivo de la variable independiente**
+```{r}
+data %>%
+ summarise(Min = min(PEAOCUPADA_FEM, na.rm = TRUE),
+           Media = mean(PEAOCUPADA_FEM, na.rm = TRUE),
+           Mediana = median(PEAOCUPADA_FEM, na.rm = TRUE),
+           Desviación=sd (PEAOCUPADA_FEM, na.rm= TRUE),
+           Max = max(PEAOCUPADA_FEM, na.rm = TRUE),
+           Q1 = quantile(PEAOCUPADA_FEM, 0.25, na.rm= TRUE), #Primer cuartil
+    Q3 = quantile(PEAOCUPADA_FEM, 0.75, na.rm=TRUE)) #Tercer cuartil
+```
+Una media de 46.8 significa que, en promedio, el 47% de la mujer económicamente activa tiene empleo.
+
+Un rango de valores relativamente pequeño (39.8 a 54.8) indica que la mayoría de los departamentos tienen un porcentaje similar de mujeres económicamente activas ocupadas. 
+Una mediana de 46.7 significa que la mitad de los departamentos tienen un porcentaje de mujeres ocupadas superior o igual al 47%,
+
+**Grafiquemos**
+
+Generemos el gráfico que mejor permite ver estas medidas de posición
+
+```{r}
+  ggplot(data,aes(y=PEAOCUPADA_FEM))+
+  geom_boxplot()+
+  ylab("Tasa de población económicamente activa ocupada
+      femenina")+
+  theme_classic()
+```
+La distancia entre Q1 y Q3 es bastante pequeña (5.525), lo que sugiere que hay poca variación en el porcentaje de mujeres económicamente activas ocupadas entre los departamentos.
+Como no hay valores atípicos, todos los valores de porcentaje de mujeres económicamente activas ocupadas están dentro del rango esperado. Esto refuerza la idea de que hay una gran similitud en los porcentajes de mujeres ocupadas entre los departamentos.
+
+**Gráfico de dispersión**
+
+Visualizamos la relación entre dos variables cuantitativas.
+
+```{r}
+library(ggplot2)
+ggplot(data, aes(x=PEAOCUPADA_FEM, y=VICTIMAS)) +
+  geom_point(colour="skyblue") +  xlab("Tasa de población económicamente activa ocupada femenina") +  ylab("Número de víctimas de trata 
+  de personas, 2017") +
+  ggtitle("Relación entre la tasa de población económicamente activa ocupada femenina y el número de víctimas de trata de personas en el 2017") +
+  theme_light()+ geom_smooth(method=lm,se=F)
+```
+A primera vista, el gráfico nos indicaría una correlación negativa.Realizaremos la prueba de correlación para saber la fuerza de la correlación
+
+**Hipótesis de la correlación**
+H0 = No existe correlación entre la tasa de población económicamente activa ocupada femenina y el número de víctimas de trata de personas en el 2017.
+```{r}
+cor.test(data$VICTIMAS, data$PEAOCUPADA_FEM)
+```
+Dado que el p-valor es mayor a 0.05, aceptamos la H0. Por lo tanto, podemos afirmar que no existe correlación entre la tasa de población económicamente activa ocupada femenina y el número de víctimas de trata de personas en el 2017.
+
+#### **3.7. Casos de violencia reportados en los CEM (CASOSCEM)**
+**Análisis descriptivo de la variable independiente**
+```{r}
+data %>%
+ summarise(Min = min(CASOSCEM, na.rm = TRUE),
+           Media = mean(CASOSCEM, na.rm = TRUE),
+           Mediana = median(CASOSCEM, na.rm = TRUE),
+           Desviación=sd (CASOSCEM, na.rm= TRUE),
+           Max = max(CASOSCEM, na.rm = TRUE),
+           Q1 = quantile(CASOSCEM, 0.25, na.rm= TRUE), #Primer cuartil
+    Q3 = quantile(CASOSCEM, 0.75, na.rm=TRUE)) #Tercer cuartil
+```
+Una media de 3869 significa que, en promedio, 3869 casos de violencia son reportados en los CEM de cada departamento del Perú. 
+
+Un rango de valores extremadamente amplio (612 a 28550) indica que hay departamentos con un número muy bajo de casos de violencia reportados y otros con un número muy alto. Esto sugiere que hay una gran variedad en el número de casos reportados entre los CEM.
+
+**Grafiquemos**
+
+Generemos el gráfico que mejor permite ver estas medidas de posición
+
+```{r}
+  ggplot(data,aes(y=CASOSCEM))+
+  geom_boxplot()+
+  ylab("Casos de violencia reportados en los CEM")+
+  theme_classic()
+```
+Una distancia de 2485 entre Q1 y Q3 significa que hay gran variación en el número de casos reportados en los CEM.
+
+El punto atípico, que corresponde a Lima y sus 28550 casos de violencia reportados, equivale a un número extremadamente alto de casos de violencia reportados. Este punto podría indicar que hay un problema particular en ese departamento en cuanto a violencia contra la mujer.
+
+**Gráfico de dispersión**
+
+Visualizamos la relación entre dos variables cuantitativas.
+
+```{r}
+library(ggplot2)
+ggplot(data, aes(x=CASOSCEM, y=VICTIMAS)) +
+  geom_point(colour="skyblue") +  xlab("Casos de violencia reportados en los CEM") +  ylab("Número de víctimas de trata 
+  de personas, 2017") +
+  ggtitle("Relación entre los casos de violencia reportados en los CEM y el número de víctimas de trata de personas en el 2017") +
+  theme_light()+ geom_smooth(method=lm,se=F)
+```
+A primera vista, el gráfico nos indicaría una correlación positiva.Realizaremos la prueba de correlación para saber la fuerza de la correlación
+
+**Hipótesis de la correlación**
+H0 = No existe correlación entre los casos de violencia reportados en los CEM y el número de víctimas de trata de personas en el 2017.
+```{r}
+cor.test(data$VICTIMAS, data$CASOSCEM)
+```
+Dado que el p-valor es menor a 0.05, rechazamos la H0. Por lo tanto, podemos afirmar que existe correlación entre los casos de violencia reportados en los CEM y el número de víctimas de trata de personas en el 2017.
+
+El coeficiente es de 0.89, por lo tanto se trata de una relación positiva (i), y de fuerza grande (ii).
+
+Esto quiere decir que a medida que los casos de violencia reportados en los CEM aumenta, lo mismo sucede con el número de víctimas de trata de personas.
+
+Esta correlación significativa indica que los casos de violencia reportados en los CEM son un indicador importante para la trata de personas. Podría ser importante para los centros que estén haciendo un esfuerzo por mejorar la detección y la prevención de la violencia contra la mujer.
+
+# **Regresiones**
+#### REGRESION GAUSSIANA
+
+Ajustar el modelo de regresión para porcentaje de población femenina y victimas de la trata de personas
+
+```{r}
+modelo <- lm(VICTIMAS ~ MUJERES, data = data)
+summary(modelo)
+```
+
+```{r}
+data |> 
+  ggplot()+
+  aes(x=MUJERES, y=VICTIMAS)+
+  geom_point()
+```
+
+
+Ajustar el modelo de regresión para porcentaje de población inmigrante y victimas de la trata de personas
+
+```{r}
+modelo <- lm(VICTIMAS ~ INMIGRANTES, data = data)
+summary(modelo)
+```
+```{r}
+data |> 
+  ggplot()+
+  aes(x=INMIGRANTES, y=VICTIMAS)+
+  geom_point()
+```
+Ajustar el modelo de regresión para porcentaje de población rural y victimas de la trata de persona
+
+```{r}
+modelo <- lm(VICTIMAS ~ RURAL, data = data)
+summary(modelo)
+```
+```{r}
+data |> 
+  ggplot()+
+  aes(x=RURAL, y=VICTIMAS)+
+  geom_point()
+```
+
+
+Ajustar el modelo de regresión para porcentaje de población en nivel socioeconómico muy bajo y victimas de la trata de personas
+```{r}
+modelo <- lm(VICTIMAS ~ SOCIOECO_MUYBAJO, data = data)
+summary(modelo)
+```
+```{r}
+data |> 
+  ggplot()+
+  aes(x=SOCIOECO_MUYBAJO, y=VICTIMAS)+
+  geom_point()
+```
+
+
+Ajustar el modelo de regresión lineal para indice de asitencia a educación secundaria y victimas de la trata de personas 
+```{r}
+modelo <- lm(VICTIMAS ~ ASISTENCIA_SEC, data = data)
+summary(modelo)
+```
+```{r}
+data |> 
+  ggplot()+
+  aes(x=ASISTENCIA_SEC, y=VICTIMAS)+
+  geom_point()
+```
+
+
+Ajustar el modelo de regresión para población economicamente activa ocupada femenina y victimas de la trata de personas
+```{r}
+modelo <- lm(VICTIMAS ~ PEAOCUPADA_FEM, data = data)
+summary(modelo)
+```
+```{r}
+data |> 
+  ggplot()+
+  aes(x=PEAOCUPADA_FEM, y=VICTIMAS)+
+  geom_point()
+```
+
+
+Ajustar el modelo de regresión para casos de violencia reportados y victimas de la trata de personas
+```{r}
+modelo <- lm(VICTIMAS ~ CASOSCEM, data = data)
+summary(modelo)
+```
+```{r}
+data |> 
+  ggplot()+
+  aes(x=CASOSCEM, y=VICTIMAS)+
+  geom_point()
+```
+
+
+Ya que fueron las variables independientes "INMIGRANTES" y "CASOSCEM" las que resultaron con correlación significativa, se las está usando para el modelo.
+
+```{r}
+library(plotly)
+```
+```{r}
+plot_ly(x = data$VICTIMAS, y = data$INMIGRANTES, z = data$CASOSCEM, text=rownames(data),type = "scatter3d", mode = "markers")
+```
+
+Ahora.....¿El modelo es valido? ANOVA
+
+```{r}
+modelo1 <- lm(VICTIMAS~INMIGRANTES + CASOSCEM, data=data)
+```
+
+```{r}
+summary(modelo1)
+```
+
+En este caso, al obtener un p-valor menor/mayor a 0.05 podemos rechazar/aceptar la hipótesis nula, concluyendo que nuestro modelo sí/NO es válido.
+
+
+#### REGRESIÓN POISSON
+```{r}
+modelo_poisson <- glm(VICTIMAS ~ INMIGRANTES + CASOSCEM, 
+                      family = poisson, 
+                      data = data)
+```
+```{r}
+summary(modelo_poisson)
+```
+
+```{r}
+exp(coef(modelo_poisson))
+```
+
+**CONCLUSIONES: **
+
+Por un lado, el porcentaje de asistencia a la educación secundaria es alto en la mayoría de los departamentos. Esto podría ser un factor que ayuda a explicar el número de víctimas de trata de personas, ya que los estudios han sugerido que la educación puede reducir la vulnerabilidad a la trata de personas.
+
+Asimsimo, existe una gran similitud en la participación laboral de las mujeres entre los departamentos. Esto podría significar que la situación económica de las mujeres no tiene un impacto significativo en el número de víctimas de trata de personas.
+No obstante, los números de casos de violencia reportados en los CEM varían mucho entre los departamentos. Esto podría explicar en parte el número de víctimas de trata de personas, ya que las mujeres víctimas de violencia tienen un mayor riesgo de ser victimizadas por la trata.
+
+De igual forma, existe una correlación significativa entre los números de casos de violencia reportados en los CEM y el número de víctimas de trata de personas. Esto sugiere que los CEM pueden ser una buena fuente de información para identificar víctimas de trata de personas y que están bien posicionados para proporcionar apoyo a las víctimas.
+
+A partir de los datos obenidos,se realizará las respectivas modelaciones múltiples y simples. Aquí podríamos dividir las variables como que del tipo "DEMOGRAFICAS", "ECONOMICAS", etc., para poder realizar un analisis más completo. Se espera que las variables económicas no sean las únicas que justifiquen el aumento o disminución de la trata de personas por departamento.
+
+Por otro lado, algunas conlusiones y sugerencias para la gestión y políticas públicas son las siguientes:
+
+Debido a la gran variación entre los departamentos en los números de casos de violencia reportados en los CEM, se puede sugerir que se necesitan recursos específicos para gestionar y supervisar los CEM en los departamentos con mayor número de casos.
+
+Aunque la correlación por poco no llega a ser significativa entre inmigración y trata de personas, puede ser útil crear políticas públicas que brinden apoyo especializado para inmigrantes y refugiados, incluyendo programas de prevención y apoyo para víctimas de trata.
+
+Se supone que la población rural tiene más posibilidades de ser propensa a ser victimas de la trata de personas como consecuencia colateral del problema de la centralización, fuerza y alcance del estado para con dichas regiones.
+
+Por eso, es importante reconocer la centralidad del estado en la investigación de la trata de personas y desarrollar políticas públicas que hagan hincapié en el estado como un actor clave para proteger a los ciudadanos y hacer más eficiente el sistema judicial. Ya que, el debilitamiento de la institucionalidad estatal y la carencia de eficacia judicial que sufren los países con débiles instituciones estatales, como es en el caso de Perú, puede obstaculizar la investigación y castigo de delitos de trata.
+
+Por ello, se debe involucrar a las comunidades rurales en la prevención de la trata de personas. Proporcionar educación sobre los riesgos de la trata de personas y dar a los residentes de las áreas rurales las habilidades necesarias para evitar caer en trampas de trata.
+
+Por último, es importante recordar que la trata de personas es un problema transnacional. Por lo que, es importante desarrollar asociaciones regionales para la prevención y el combate de la trata de personas. La cooperación internacional es fundamental para rastrear a los traficantes y proteger a las víctimas de trata de personas.
+
+# **Otras regresiones**
+RLS
+
+```{r}
+regresionMUJERES<-lm(VICTIMAS~MUJERES, data = data) 
+summary(regresionMUJERES) 
+```
+
+```{r}
+regresionINMIGRANTES<-lm(VICTIMAS~INMIGRANTES, data=data) 
+summary(regresionINMIGRANTES) 
+```
+```{r}
+regresionEMIGRANTES<-lm(VICTIMAS~EMIGRANTES, data=data) 
+summary(regresionEMIGRANTES) 
+```
+
+```{r}
+regresionURBANO<-lm(VICTIMAS~URBANO, data=data) 
+summary(regresionURBANO) 
+```
+```{r}
+regresionRURAL<-lm(VICTIMAS~RURAL, data=data) 
+summary(regresionRURAL) 
+```
+```{r}
+regresionSOCIOECO<-lm(VICTIMAS~SOCIOECO_MUYBAJO, data=data) 
+summary(regresionSOCIOECO) 
+```
+
+```{r}
+regresionASISTENCIA<-lm(VICTIMAS~ASISTENCIA_SEC, data=data) 
+summary(regresionASISTENCIA) 
+```
+```{r}
+regresionPEAOCUPADA<-lm(VICTIMAS~PEAOCUPADA_FEM, data=data) 
+summary(regresionPEAOCUPADA) 
+```
+
+```{r}
+regresionCASOS<-lm(VICTIMAS~CASOSCEM, data=data) 
+summary(regresionCASOS) 
+```
+```{r}
+regresionASISTENCIA<-lm(VICTIMAS~ASISTENCIA_SUP, data=data) 
+summary(regresionASISTENCIA) 
+```
+RLM
+
+Luego de realizadas las correlaciones y RLS, podemos escoger las variables adecuadas para modelar la RLM
+
+Modelo empleando todas las variables independientes válidas
+
+```{r}
+regresionALL<-lm(VICTIMAS~INMIGRANTES + SOCIOECO_MUYBAJO + ASISTENCIA_SEC + CASOSCEM + ASISTENCIA_SUP, data=data) 
+summary(regresionALL) 
+```
+
+# **Analisis Factorial**
+Seleccionemos la data que necesitamos. 
+```{r}
+dontselect=c("...1")
+select=setdiff(names(data),dontselect) 
+theData=data[,select]
+
+# usaremos:
+library(magrittr)
+head(theData,10)%>%
+    rmarkdown::paged_table()
+```
+
+Ahora, calculemos las correlaciones entre todas las variables
+```{r}
+library(polycor)
+corMatrix=polycor::hetcor(theData)$correlations
+```
+```{r}
+round(corMatrix,2)
+```
+#### **Graficamos para ver las correlaciones**
+```{r}
+library(ggcorrplot)
+
+ggcorrplot(corMatrix)
+```
+En primer lugar, la EFA requiere verificar si los datos permiten factorizar
+
+```{r}
+library(psych)
+psych::KMO(corMatrix) 
+```
+En segundo lugar, verificamos si la matriz de correlaciones es adecuada
+
+Aquí hay dos pruebas:
+
+1. H0: La matriz de correlación es una matriz identidad
+
+```{r}
+cortest.bartlett(corMatrix,n=nrow(theData))$p.value>0.05
+```
+Después de aplicar la prueba, podemos rechazar la hipótesis nula y afirmar que la matriz de correlación no es una matriz identidad.
+
+2. H0: La matriz de correlación es una matriz singular.
+```{r}
+library(matrixcalc)
+
+is.singular.matrix(corMatrix)
+
+```
+Después de realizar la prueba, aceptamos la hipótesis nula y podemos afirmar que la matriz de correlación es una matriz singular
+
+En tercer lugar, determinar en cuántos factores o variables latentes podríamos reducir la data para identificar sus componentes básicos o principales
+
+```{r}
+fa.parallel(theData, fa = 'fa',correct = T,plot = F)
+```
+Las ponderaciones estimadas para las puntuaciones factoriales son probablemente incorrectas, pues como ya comprombamos la matriz no es adecuada. Sin embargo, continuaremos con el proceso.
+
+Se sugieren 3, contrario a la teoria.
+
+Redimensionamos a un número menor de factores
+```{r}
+library(GPArotation)
+resfa <- fa(theData,
+            nfactors = 2,
+            cor = 'mixed',
+            rotate = "varimax", #oblimin?
+            fm="minres")
+print(resfa$loadings)
+
+```
+Mejoramos el resultado, ya que hay más de un factor
+```{r}
+print(resfa$loadings,cutoff = 0.5)
+
+```
+**Resultado visual**
+
+Logramos que cada variable se vaya a un factor para obtener una estructura simple
+```{r}
+fa.diagram(resfa,main = "Resultados del EFA")
+```
+# **Análisis cluster**
+#### Distribución de las varaibles independientes
+```{r}
+boxplot(data[,c(2:11)],horizontal = F,las=2,cex.axis = 0.5)
+```
+Cambiamos de sus rangos. Elejimos un rango del 0 al 1.
+
+```{r}
+library(BBmisc)
+boxplot(normalize(data[,c(2:11)],method='range',range=c(0,10)))
+```
+Otra estrategia sería tipificarla. Como se muestra a continuación:
+
+```{r}
+boxplot(normalize(data[,c(2:11)],method='standardize'))
+
+```
+Nos quedaremos con esta opción y veremos las correlaciones entre esas variables tipificadas.
+
+```{r}
+cor(data[,c(2:11)])
+```
+Como hay correlaciones negativas sería bueno invertir el rango...
+
+
+
+
+
+
